@@ -1,0 +1,84 @@
+---
+title: "Capturas de sardina y dorada"
+author: "Alberto Coll"
+date: "18/11/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r datos, include = FALSE}
+library(tidyverse)
+capturas <- read_csv2("C:/Users/collf/Documents/Programacion/R_pesca/Capturas_92-17.csv",
+                      locale = locale(encoding = "Latin1", decimal_mark = ",", grouping_mark = "."), na = "#¡VALOR!",
+                      col_types = cols(Zona = col_character()))
+
+
+capturas <- capturas %>%
+  rename(año = Año, zona = Zona, alfa3 = AL3, peso = `Peso vivo (kg)`, código = `cód. CEIUAPA`, grupo = `Nombre_grupo CEIUAPA`) %>%
+  select(año, Taxonómico, alfa3, zona, peso, código, grupo)
+
+clave <- read_csv2("C:/Users/collf/Documents/Programacion/R_pesca/CEIUAPA.csv",
+                   locale = locale(encoding = "Latin1"))
+clave <- clave %>%
+  rename(Taxonómico = TAXOCODE, alfa3 = `3A_CODE`, especie = Scientific_name) %>%
+  select(Taxonómico, alfa3, especie)
+
+pesca <- inner_join(capturas, clave)
+
+pesca <- pesca %>%
+  mutate(subcódigo = código - (código %/% 10) * 10,
+         código = código %/% 10,
+         zona = ifelse(zona == "99", NA, zona),
+         peso = peso / 1000,
+         log_peso = log(peso, 10))
+```
+
+## Resumen
+
+  En las siguientes gráficas se recogen datos obtenidos del BOE del Gobierno de España acerca de las capturas de los barcos pesqueros entre 1992 y 2017. En este documento aparecen únicamente los datos relativos a la pesca de la sardina (*Sardina pilchardus*) y la dorada (*Sparus aurata*), así como la comparación de ambos. De manera parecida, se han restringido los datos a las zonas FAO 37 (Mar Mediterráneo y Mar Negro), 27 (Atlántico Noreste) y 34 (Atlántico Centro Este) debido a su particular relevancia por proximidad a las costas españolas.
+  
+### Capturas de *Sardina pilchardus*
+
+```{r S_pilchardus, echo =FALSE}
+ggplot(data = filter(pesca, especie == "Sardina pilchardus", is.na(zona) == FALSE), mapping = aes(x = año, y = peso, color = zona)) +
+  geom_point() +
+  geom_smooth(se = FALSE) +
+  labs(title = expression(italic("Sardina pilchardus")),
+       x = "Año",
+       y = "log Peso vivo(toneladas)",
+       color = "Zona de pesca",
+       caption = "Basado en estadísticas del gobierno de España")+
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+### Capturas de *Sparus aurata*
+
+```{r S_aurata, echo = FALSE}
+ggplot(data = filter(pesca, especie == "Sparus aurata", is.na(zona) == FALSE), mapping = aes(x = año, y = peso, color = zona)) +
+  geom_point() +
+  geom_smooth(se = FALSE) +
+  labs(title = expression(italic("Sparus aurata")),
+       x = "Año",
+       y = "log Peso vivo(toneladas)",
+       color = "Zona de pesca",
+       caption = "Basado en estadísticas del gobierno de España") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+### Comparación de capturas de *S. pilchardus* y *S. aurata*
+
+```{r comparacion, echo = FALSE}
+ggplot(data = filter(pesca, especie =="Sparus aurata" | especie == "Sardina pilchardus", is.na(zona) == FALSE), mapping = aes(x = año, y = log_peso, color = zona)) +
+  geom_point() +
+  geom_smooth(se = FALSE) +
+  facet_wrap(~especie) +
+  labs(title = "Capturas por año y zona",
+       x = "Año",
+       y = "log Peso vivo (toneladas)",
+       caption = "Basado en estadísticas del gobierno de España") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+```
