@@ -1,2 +1,2 @@
 # R_pesca
-Pruebas con R utilizando datos de pescas
+Primeras pruebas con R y RMarkdown utilizando dataset públicos de capturas de pesca.
